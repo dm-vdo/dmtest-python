@@ -1,0 +1,101 @@
+#! /usr/bin/env python3
+"""
+  Creates a config file for running dm tests.
+
+  Copyright (c) Red Hat
+"""
+
+from __future__ import print_function
+
+import argparse
+import logging
+import os
+import pathlib
+import sys
+import yaml
+
+from source.Command import *
+
+RUN_DIR = os.getcwd()
+
+class MakeConfig(object):
+  def __init__(self, args):
+    # Parse input arguments
+    (options, extra) = self.parseArgs(args)
+    self.dataDevice    = options.dataDevice
+    self.metaDevice    = options.metadataDevice
+    self.disableCheck  = options.disableDeviceCheck
+    self.outputFile    = options.outputFile
+
+    # Initialize the logging object
+    self.log = logging.getLogger('make-config')
+    self.log.info("Starting make-config!")
+
+    # Check for sudo privileges
+    if os.geteuid() != 0 and runCommandIgnoringErrors("sudo -v").returncode != 0:
+      msg = "This script must be run by a user with sudo privileges"
+      raise PermissionError(msg)
+
+  def parseArgs(self, args):
+    """
+    Parse any input arguments and apply defaults
+    """
+    parser = argparse.ArgumentParser(
+      prog="make-config",
+      description="Creates the device config for running dm tests.",
+      epilog="For additional information see README.md within the module directory.")
+    parser.add_argument(
+      "--dataDevice",
+      action = "store",
+      type = str,
+      dest = "dataDevice",
+      required = True,
+      help = "The data device to use for the dmtest run.")
+    parser.add_argument(
+      "--metadataDevice",
+      action = "store",
+      type = str,
+      dest = "metadataDevice",
+      required = True,
+      help = "The metadata device to use for the dmtest run.")
+    parser.add_argument(
+      "--disableDeviceCheck",
+      action = "store_true",
+      dest = "disableDeviceCheck",
+      default = False,
+      help = "Whether to do device verification before the dmtest run.")
+    parser.add_argument(
+      "--outputFile",
+      action = "store",
+      type=pathlib.Path,
+      default = os.path.join(RUN_DIR, 'config.toml'),
+      dest = "outputFile",
+      help = "The config file to create.")
+    
+    return parser.parse_known_args(args)
+
+  def createConfigFile(self):
+    """
+    Create the configuration file necessary for the dmtest-python package
+    """
+    configFile = self.outputFile
+    self.log.info("Creating the {0} configuration file".format(configFile))
+    try:
+      # Write the devices and necessary parameters
+      with open(configFile, 'w+') as fh:
+        fh.write("metadata_dev = '%s'\ndata_dev = '%s'\ndisable_by_id_check = %s\n"
+                 % (self.metaDevice, self.dataDevice,
+                    'true' if self.disableCheck else 'false'))
+    except Exception as error:
+      self.log.error("Error - {0}".format(error))
+    return True
+
+def main(args):
+  makeConfig = MakeConfig(args)
+  makeConfig.createConfigFile()
+
+  makeConfig.log.info("make-config operations completed successfully!")
+  sys.exit(0)
+
+if __name__ == "__main__":
+  main(sys.argv)
