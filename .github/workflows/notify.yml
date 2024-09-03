@@ -23,7 +23,7 @@ jobs:
               }
             }
           variables: |   
-            queryString: "repo:${{ env.ORG }}/${{env.REPO}}, state:open, is:pr, -label:\"on hold\", draft:false, review:required,"
+            queryString: "repo:${{ env.ORG }}/${{env.REPO}}, state:open, is:pr, -label:\"on hold\", draft:false, review:none,"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
