@@ -13,6 +13,21 @@ jobs:
       REPO: ${{ github.event.repository.name }}      
     runs-on: ubuntu-latest
     steps:
+      - name: Notify PRs No Status
+        uses: octokit/graphql-action@v2.x
+        id: prs_no_status
+        with:
+          query: |
+            query needreview($queryString:String!) {
+              search(type: ISSUE, query: $queryString, last: 100) {
+                issueCount
+              }
+            }
+          variables: |
+            queryString: "repo:${{ env.ORG }}/${{env.REPO}}, state:open, is:pr, -label:\"on hold\", draft:false, review:none,"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Notify PRs Needing Review
         uses: octokit/graphql-action@v2.x
         id: prs_need_review
@@ -24,7 +39,7 @@ jobs:
               }
             }
           variables: |   
-            queryString: "repo:${{ env.ORG }}/${{env.REPO}}, state:open, is:pr, -label:\"on hold\", draft:false, review:none,"
+            queryString: "repo:${{ env.ORG }}/${{env.REPO}}, state:open, is:pr, -label:\"on hold\", draft:false, review:required,"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -100,14 +115,35 @@ jobs:
           COUNT: ${{ fromJSON(steps.prs_with_approval.outputs.data).search.issueCount }}        
           SLACK_WEBHOOK_URL: ${{ secrets.SLACKMSG }}
 
-      - run: |
-          echo needs review ${{ env.COUNT_NEED_REVIEW }}
-          echo fb ${{ env.COUNT_WITH_FEEDBACK }}
-          echo approval ${{ env.COUNT_WITH_APPROVAL }}
+      - name: Format Message
+        id: format_message
+        run: |
+          echo -n MESSAGE=${{ env.REPO }} PRs >> $GITHUB_OUTPUT
+          first=true
+          if test ${{ env.COUNT_OPEN }} -gt 0; then
+            if $first; then first=false; else echo -n , >> $GITHUB_OUTPUT; fi
+            echo -n " newly opened: ${{ env.COUNT_OPEN }}"  >> $GITHUB_OUTPUT
+          fi
+          if test ${{ env.COUNT_NEED_REVIEW }} -gt 0; then
+            if $first; then first=false; else echo -n ,  >> $GITHUB_OUTPUT; fi
+            echo -n " needing reviews: ${{ env.COUNT_NEED_REVIEW }}" >> $GITHUB_OUTPUT
+          fi
+          if test ${{ env.COUNT_WITH_FEEDBACK }} -gt 0; then
+            if $first; then first=false; else echo -n , >> $GITHUB_OUTPUT; fi
+            echo -n " awaiting replies to reviews: ${{ env.COUNT_WITH_FEEDBACK }}" >> $GITHUB_OUTPUT
+          fi
+          if test ${{ env.COUNT_WITH_APPROVAL }} -gt 0; then
+            if $first; then first=false; else echo -n , >> $GITHUB_OUTPUT; fi
+            echo -n " approved: ${{ env.COUNT_WITH_APPROVAL }}" >> $GITHUB_OUTPUT
+          fi
+          echo . >> $GITHUB_OUTPUT
         env:
+          COUNT_OPEN: ${{ fromJSON(steps.prs_no_status.outputs.data).search.issueCount }}
           COUNT_NEED_REVIEW: ${{ fromJSON(steps.prs_need_review.outputs.data).search.issueCount }}
           COUNT_WITH_FEEDBACK: ${{ fromJSON(steps.prs_with_feedback.outputs.data).search.issueCount }}
           COUNT_WITH_APPROVAL: ${{ fromJSON(steps.prs_with_approval.outputs.data).search.issueCount }}
 
-      - run: |
-          printenv | grep COUNT
+      - name: Show message
+        run: echo ${{ env.MSG }}
+        env:
+          MSG: ${{ steps.format_message.outputs.MESSAGE }}
