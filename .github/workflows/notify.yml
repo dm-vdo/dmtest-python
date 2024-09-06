@@ -28,6 +28,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Save Count Needing Review
+        run: |
+          echo "COUNT_need_review=${{ env.COUNT }}" >> "$GITHUB_ENV"
+
+      - name: Save Count Needing Review
+        run: |
+          echo "COUNT_need_review2=${{ env.COUNT }}" >> "$GITHUB_ENV"
+
       - uses: slackapi/slack-github-action@v1.24.0
         if: 0
         # ${{ env.COUNT > 0 }}
@@ -56,6 +64,10 @@ jobs:
             queryString: "repo:${{env.ORG}}/${{env.REPO}}, state:open, is:pr, -label:\"on hold\", draft:false, review:changes_requested,"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Save Count With FeedBack
+        run: |
+          echo "COUNT_with_feedback=${{ env.COUNT }}" >> "$GITHUB_ENV"
 
       - uses: slackapi/slack-github-action@v1.24.0
         if: 0
@@ -86,6 +98,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                     
+      - name: Save Count With Approval
+        run: |
+          echo "COUNT_approved=${{ env.COUNT }}" >> "$GITHUB_ENV"
+
       - uses: slackapi/slack-github-action@v1.24.0
         if: 0
         # ${{ env.COUNT > 0 }}
@@ -100,4 +116,5 @@ jobs:
           COUNT: ${{ fromJSON(steps.prs_with_approval.outputs.data).search.issueCount }}        
           SLACK_WEBHOOK_URL: ${{ secrets.SLACKMSG }}
 
-      - run: printenv
+      - run: |
+          printenv | grep COUNT
