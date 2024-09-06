@@ -43,20 +43,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: slackapi/slack-github-action@v1.24.0
-        if: 0
-        # ${{ env.COUNT > 0 }}
-        with:
-          # This data can be any valid JSON from a previous step in the GitHub Action
-          payload: |
-            {
-              "PR_MSG": "Number of PRs awaiting reviews in ${{env.REPO}} : ${{ env.COUNT }}",
-              "PR_LINK": "https://github.com/${{env.ORG}}/${{env.REPO}}/pulls?q=is%3Apr+is%3Aopen+-label%3A%22on%20hold%22+draft%3Afalse+review%3Arequired"
-            }
-        env:
-          COUNT: ${{ fromJSON(steps.prs_need_review.outputs.data).search.issueCount }}
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACKMSG }}
-
       - name: Notify PRs With Feedback
         uses: octokit/graphql-action@v2.x
         id: prs_with_feedback
@@ -71,20 +57,6 @@ jobs:
             queryString: "repo:${{env.ORG}}/${{env.REPO}}, state:open, is:pr, -label:\"on hold\", draft:false, review:changes_requested,"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - uses: slackapi/slack-github-action@v1.24.0
-        if: 0
-        # ${{ env.COUNT > 0 }}
-        with:
-          # This data can be any valid JSON from a previous step in the GitHub Action
-          payload: |
-            {
-              "PR_MSG": "Number of PRs awaiting replies to reviews ${{env.REPO}} : ${{ env.COUNT }}",
-              "PR_LINK": "https://github.com/${{env.ORG}}/${{env.REPO}}/pulls?q=is%3Apr+is%3Aopen+-label%3A%22on%20hold%22+draft%3Afalse+review%3Achanges_requested"
-            }
-        env:
-          COUNT: ${{ fromJSON(steps.prs_with_feedback.outputs.data).search.issueCount }}
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACKMSG }}
 
       - name: Notify PRs With Approval
         uses: octokit/graphql-action@v2.x
@@ -101,20 +73,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                     
-      - uses: slackapi/slack-github-action@v1.24.0
-        if: 0
-        # ${{ env.COUNT > 0 }}
-        with:
-          # This data can be any valid JSON from a previous step in the GitHub Action
-          payload: |
-            {
-              "PR_MSG": "Number of PRs approved in ${{env.REPO}} : ${{ env.COUNT }}",
-              "PR_LINK": "https://github.com/${{env.ORG}}/${{env.REPO}}/pulls?q=is%3Apr+is%3Aopen+-label%3A%22on%20hold%22+draft%3Afalse+review%3Aapproved"
-            }
-        env:
-          COUNT: ${{ fromJSON(steps.prs_with_approval.outputs.data).search.issueCount }}        
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACKMSG }}
-
       - name: Format Message
         id: format_message
         run: |
@@ -143,7 +101,19 @@ jobs:
           COUNT_WITH_FEEDBACK: ${{ fromJSON(steps.prs_with_feedback.outputs.data).search.issueCount }}
           COUNT_WITH_APPROVAL: ${{ fromJSON(steps.prs_with_approval.outputs.data).search.issueCount }}
 
-      - name: Show message
-        run: echo ${{ env.MSG }}
+      - uses: slackapi/slack-github-action@v1.24.0
+        if: ${{ env.COUNT_OPEN > 0 || env.COUNT_NEED_REVIEW > 0 || env.COUNT_WITH_FEEDBACK > 0 || env.COUNT_WITH_APPROVAL > 0 }}
+        with:
+          # This data can be any valid JSON from a previous step in the GitHub Action
+          payload: |
+            {
+              "PR_MSG": "${{env.MSG}}",
+              "PR_LINK": "https://github.com/${{env.ORG}}/${{env.REPO}}/pulls"
+            }
         env:
           MSG: ${{ steps.format_message.outputs.MESSAGE }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACKMSG }}
+          COUNT_OPEN: ${{ fromJSON(steps.prs_no_status.outputs.data).search.issueCount }}
+          COUNT_NEED_REVIEW: ${{ fromJSON(steps.prs_need_review.outputs.data).search.issueCount }}
+          COUNT_WITH_FEEDBACK: ${{ fromJSON(steps.prs_with_feedback.outputs.data).search.issueCount }}
+          COUNT_WITH_APPROVAL: ${{ fromJSON(steps.prs_with_approval.outputs.data).search.issueCount }}
