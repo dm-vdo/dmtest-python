@@ -94,7 +94,6 @@ jobs:
             if $first; then first=false; else echo -n , >> $GITHUB_OUTPUT; fi
             echo -n " approved: ${{ env.COUNT_WITH_APPROVAL }}" >> $GITHUB_OUTPUT
           fi
-          echo . >> $GITHUB_OUTPUT
         env:
           COUNT_OPEN: ${{ fromJSON(steps.prs_no_status.outputs.data).search.issueCount }}
           COUNT_NEED_REVIEW: ${{ fromJSON(steps.prs_need_review.outputs.data).search.issueCount }}
@@ -104,7 +103,12 @@ jobs:
       - uses: slackapi/slack-github-action@v1.24.0
         if: ${{ env.COUNT_OPEN > 0 || env.COUNT_NEED_REVIEW > 0 || env.COUNT_WITH_FEEDBACK > 0 || env.COUNT_WITH_APPROVAL > 0 }}
         with:
-          # This data can be any valid JSON from a previous step in the GitHub Action
+          # This data can be any valid JSON from a previous step in the GitHub Action.
+          #
+          # The short URL (we used to include
+          # ?q=is%3Apr+is%3Aopen+-label%3A%22on%20hold%22+draft%3Afalse+review%3Aapproved
+          # for example) will include all open PRs including those on
+          # hold, but it'll make the Slack message less messy looking.
           payload: |
             {
               "PR_MSG": "${{env.MSG}}",
