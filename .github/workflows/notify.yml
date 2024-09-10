@@ -87,22 +87,13 @@ jobs:
               print(f"MESSAGE=${{ env.REPO }} PRs {notify_message}", file=f)
         shell: python
         env:
-          COUNT_OPEN: 3
-          #${{ fromJSON(steps.prs_no_status.outputs.data).search.issueCount }}
+          COUNT_OPEN: ${{ fromJSON(steps.prs_no_status.outputs.data).search.issueCount }}
           COUNT_NEED_REVIEW: ${{ fromJSON(steps.prs_need_review.outputs.data).search.issueCount }}
-          COUNT_WITH_FEEDBACK: 2
-          # ${{ fromJSON(steps.prs_with_feedback.outputs.data).search.issueCount }}
+          COUNT_WITH_FEEDBACK: ${{ fromJSON(steps.prs_with_feedback.outputs.data).search.issueCount }}
           COUNT_WITH_APPROVAL: ${{ fromJSON(steps.prs_with_approval.outputs.data).search.issueCount }}
 
-      - name: Debug logging
-        run: |
-          echo message: ${{ env.MSG }}
-        env:
-          MSG: ${{ steps.format_message.outputs.MESSAGE }}
-
       - uses: slackapi/slack-github-action@v1.24.0
-        if: 0
-        # ${{ env.COUNT_OPEN > 0 || env.COUNT_NEED_REVIEW > 0 || env.COUNT_WITH_FEEDBACK > 0 || env.COUNT_WITH_APPROVAL > 0 }}
+        if: ${{ env.COUNT_OPEN > 0 || env.COUNT_NEED_REVIEW > 0 || env.COUNT_WITH_FEEDBACK > 0 || env.COUNT_WITH_APPROVAL > 0 }}
         with:
           # This data can be any valid JSON from a previous step in the GitHub Action.
           #
