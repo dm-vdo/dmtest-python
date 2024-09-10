@@ -86,6 +86,11 @@ jobs:
           with open(os.environ["GITHUB_OUTPUT"], "a") as f:
               print(f"MESSAGE={notify_message}", file=f)
         shell: python
+        env:
+          COUNT_OPEN: ${{ fromJSON(steps.prs_no_status.outputs.data).search.issueCount }}
+          COUNT_NEED_REVIEW: ${{ fromJSON(steps.prs_need_review.outputs.data).search.issueCount }}
+          COUNT_WITH_FEEDBACK: ${{ fromJSON(steps.prs_with_feedback.outputs.data).search.issueCount }}
+          COUNT_WITH_APPROVAL: ${{ fromJSON(steps.prs_with_approval.outputs.data).search.issueCount }}
 
       - name: Format Message (shell)
         if : 0
