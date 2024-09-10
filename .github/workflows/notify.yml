@@ -84,7 +84,7 @@ jobs:
           notify_message_bits = [f"{v[0]}: {v[1]}" for v in values if v[1] > 0]
           notify_message = ", ".join(notify_message_bits)
           with open(os.environ["GITHUB_OUTPUT"], "a") as f:
-              print(f"MESSAGE={notify_message}", file=f)
+              print(f"MESSAGE=${{ env.REPO }} PRs {notify_message}", file=f)
         shell: python
         env:
           COUNT_OPEN: 3
