@@ -94,34 +94,6 @@ jobs:
           # ${{ fromJSON(steps.prs_with_feedback.outputs.data).search.issueCount }}
           COUNT_WITH_APPROVAL: ${{ fromJSON(steps.prs_with_approval.outputs.data).search.issueCount }}
 
-      - name: Format Message (shell)
-        if : 0
-        id: format_message_sh
-        run: |
-          echo -n MESSAGE=${{ env.REPO }} PRs >> $GITHUB_OUTPUT
-          first=true
-          if test ${{ env.COUNT_OPEN }} -gt 0; then
-            if $first; then first=false; else echo -n , >> $GITHUB_OUTPUT; fi
-            echo -n " newly opened: ${{ env.COUNT_OPEN }}"  >> $GITHUB_OUTPUT
-          fi
-          if test ${{ env.COUNT_NEED_REVIEW }} -gt 0; then
-            if $first; then first=false; else echo -n ,  >> $GITHUB_OUTPUT; fi
-            echo -n " needing reviews: ${{ env.COUNT_NEED_REVIEW }}" >> $GITHUB_OUTPUT
-          fi
-          if test ${{ env.COUNT_WITH_FEEDBACK }} -gt 0; then
-            if $first; then first=false; else echo -n , >> $GITHUB_OUTPUT; fi
-            echo -n " awaiting replies to reviews: ${{ env.COUNT_WITH_FEEDBACK }}" >> $GITHUB_OUTPUT
-          fi
-          if test ${{ env.COUNT_WITH_APPROVAL }} -gt 0; then
-            if $first; then first=false; else echo -n , >> $GITHUB_OUTPUT; fi
-            echo -n " approved: ${{ env.COUNT_WITH_APPROVAL }}" >> $GITHUB_OUTPUT
-          fi
-        env:
-          COUNT_OPEN: ${{ fromJSON(steps.prs_no_status.outputs.data).search.issueCount }}
-          COUNT_NEED_REVIEW: ${{ fromJSON(steps.prs_need_review.outputs.data).search.issueCount }}
-          COUNT_WITH_FEEDBACK: ${{ fromJSON(steps.prs_with_feedback.outputs.data).search.issueCount }}
-          COUNT_WITH_APPROVAL: ${{ fromJSON(steps.prs_with_approval.outputs.data).search.issueCount }}
-
       - name: Debug logging
         run: |
           echo message: ${{ env.MSG }}
