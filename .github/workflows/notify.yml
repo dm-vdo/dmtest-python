@@ -76,6 +76,21 @@ jobs:
       - name: Format Message
         id: format_message
         run: |
+          import os
+          values = [("newly opened", ${{ env.COUNT_OPEN}}),
+                    ("needing reviews", ${{ env.COUNT_NEED_REVIEW }}),
+                    ("awaiting replies to reviews", ${{ env.COUNT_WITH_FEEDBACK }}),
+                    ("approved", ${{ env.COUNT_WITH_APPROVAL }})]
+          notify_message_bits = [f"{v[0]}: {v[1]}" for v in values if v[1] > 0]
+          notify_message = ", ".join(notify_message_bits)
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              print(f"MESSAGE={notify_message}", file=f)
+        shell: python
+
+      - name: Format Message (shell)
+        if : 0
+        id: format_message_sh
+        run: |
           echo -n MESSAGE=${{ env.REPO }} PRs >> $GITHUB_OUTPUT
           first=true
           if test ${{ env.COUNT_OPEN }} -gt 0; then
@@ -100,8 +115,15 @@ jobs:
           COUNT_WITH_FEEDBACK: ${{ fromJSON(steps.prs_with_feedback.outputs.data).search.issueCount }}
           COUNT_WITH_APPROVAL: ${{ fromJSON(steps.prs_with_approval.outputs.data).search.issueCount }}
 
+      - name: Debug logging
+        run: |
+          echo message: ${{ env.MSG }}
+        env:
+          MSG: ${{ steps.format_message.outputs.MESSAGE }}
+
       - uses: slackapi/slack-github-action@v1.24.0
-        if: ${{ env.COUNT_OPEN > 0 || env.COUNT_NEED_REVIEW > 0 || env.COUNT_WITH_FEEDBACK > 0 || env.COUNT_WITH_APPROVAL > 0 }}
+        if: 0
+        # ${{ env.COUNT_OPEN > 0 || env.COUNT_NEED_REVIEW > 0 || env.COUNT_WITH_FEEDBACK > 0 || env.COUNT_WITH_APPROVAL > 0 }}
         with:
           # This data can be any valid JSON from a previous step in the GitHub Action.
           #
