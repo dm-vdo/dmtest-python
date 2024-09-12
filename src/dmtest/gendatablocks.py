@@ -322,7 +322,7 @@ class BlockRange():
         self.create = False
         self.streams: List[DataStream] = []
 
-    def update_path(self, new_path):
+    def update_path(self, new_path: str):
         self.path = self.validate_path(new_path)
 
     def report(self):
@@ -363,8 +363,6 @@ class BlockRange():
         FileNotFoundError
 
         """
-        if value is None:
-            return None
         path = Path(value)
         if (path.is_file() or path.is_block_device()):
             return path
