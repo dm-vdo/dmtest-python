@@ -33,7 +33,7 @@ def t_bad_values(fix):
     }
     for (thread_type, max_count) in max_threads.items():
         # format the first time only
-        opts = { "format": format }
+        opts : dict[str, bool | int] = { "format": format }
         format = False
         # out of range value
         opts[thread_type] = max_count + 1
