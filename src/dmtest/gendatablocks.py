@@ -406,6 +406,8 @@ class BlockRange():
         CompareError
 
         """
+        if self.streams == []:
+            logging.warning("no streams available to claim data")
         for stream in self.streams:
             if stream.claim(actual):
                 expected = stream.generate(block_number, self.block_size)
