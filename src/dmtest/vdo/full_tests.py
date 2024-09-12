@@ -5,7 +5,7 @@ import dmtest.process as process
 import dmtest.tvm as tvm
 import dmtest.units as units
 import dmtest.vdo.stats as stats
-from dmtest.vdo.utils import MB, GB, discard, populate_block_map
+from dmtest.vdo.utils import MB, GB, populate_block_map
 import dmtest.vdo.vdo_stack as vs
 
 import logging as log
@@ -66,6 +66,10 @@ def t_full(fix):
             assert_equal(free_space, 0)
             # Writing duplicate data should work
             range4.write(tag="tag2", fsync=True)
+            # Trimming a never-written location is a no-op, but it'll
+            # set up range5 to know to expect to find zero blocks when
+            # we verify.
+            range5.trim()
             # Writing new data should fail
             process.run("udevadm settle")
             gave_error = False
@@ -82,13 +86,9 @@ def t_full(fix):
                 log.info(f"exception raised! {e}")
             if not gave_error:
                 raise AssertionError("writing new data to full VDO should fail")
-            # The write failed, so to verify we should check for zero.
-            #
-            # N.B.: The trim() method only records that the range must
-            # now hold all zero bytes; it doesn't issue a trim, unlike
-            # the write() method which actually does the thing.
-            range5.trim()
-            #
+            # The write failed, so range5 will not have updated its
+            # idea of the data we should find there; it still expects
+            # zero blocks.
             process.run("udevadm settle")
             range1.verify()
             range2.verify()
@@ -96,11 +96,10 @@ def t_full(fix):
             range4.verify()
             range5.verify()
             # Free some space - discard some unique, some duplicated data
-            discard(vdo, 2 * MB, 0)
-            range1.trim()
+            range1.trim(fsync=True)
             new_stats = stats.vdo_stats(vdo)
             free_space = get_free_space(new_stats)
-            assert_equal(free_space, MB // 4096)
+            assert_equal(free_space, (size1 - MB) // 4096)
 
 def register(tests):
     tests.register("/vdo/full", t_full)
